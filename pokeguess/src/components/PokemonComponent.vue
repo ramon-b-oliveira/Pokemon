@@ -1,9 +1,6 @@
 <template>
     <div class="pokebox">
-        <div v-if="correct" class="notification is-success"> <!-- Don't repeat this, use v-bind for class-->
-            It was <strong>{{ pokemonName }}</strong>!
-        </div>
-        <div v-if="incorrect" class="notification is-danger">
+        <div v-if="processingGuess" class="notification" :class="{ 'is-success': correctGuess, 'is-danger': !correctGuess }"> 
             It was <strong>{{ pokemonName }}</strong>!
         </div>
         <div class="pokemon">
@@ -49,8 +46,8 @@ export default defineComponent({
             visible: false,
             goingAway: false,
             disabled: false,
-            correct: false,
-            incorrect: false,
+            processingGuess: false,
+            correctGuess: false,
         }
     },
     computed: {
@@ -81,8 +78,9 @@ export default defineComponent({
             this.disabled = true;
             this.visible = true;
             if (this.guess.toLocaleLowerCase() === this.pokemonName.toLocaleLowerCase()) { // early termination //
-                this.correct = true
-                setTimeout(this.rightGuessText, 2000)
+                this.correctGuess = true
+                this.processingGuess = true
+                setTimeout(this.guessText, 2000)
                 this.guess = ""
                 this.guessCount += 1
                 this.streak += 1
@@ -91,8 +89,9 @@ export default defineComponent({
                     this.maxStreak = this.streak
                 }
             } else {
-                this.incorrect = true
-                setTimeout(this.wrongGuessText, 2000)
+                this.correctGuess = false
+                this.processingGuess = true
+                setTimeout(this.guessText, 2000)
                 setTimeout(this.nextPokemon, 2500)
                 this.guess = ""
                 this.streak = 0
@@ -101,37 +100,29 @@ export default defineComponent({
         async nextPokemon() {
             this.goingAway = true
             await nextTick()
-            console.log("nextPokemon", this.goingAway)
             setTimeout(this.styleReset, 20)
         },
         async styleReset() {
             this.visible = false
             await nextTick()
-            console.log("styleReset", this.visible)
             setTimeout(this.countIncrease, 100)
         },
         async countIncrease() {
             this.count += 1
             await nextTick()
-            console.log("countIncrese", this.count)
             setTimeout(this.comingBack, 200)
         },
         async comingBack() {
             this.goingAway = false
             await nextTick()
-            console.log("comingBack1", this.goingAway)
             this.disabled = false
             await nextTick()
-            console.log("comingBack2", this.disabled)
         },
-        async rightGuessText() {
-            this.correct = false
+        async guessText() {
+            this.correctGuess = false
+            this.processingGuess = false
             await nextTick()
         },
-        async wrongGuessText() {
-            this.incorrect = false
-            await nextTick()
-        }
     },
     watch: {
         async currentPokemon(pokemon) {
