@@ -89,7 +89,7 @@ export default defineComponent({
     border-radius: 1em;
     border: 4px solid #a1d0de;
     padding: 1.5em;
-    height: 30%;
+    height: 50%;
     width: auto;
     overflow-y: auto;
 }
