@@ -1,12 +1,20 @@
 <template>
     <div class="pokebox">
-        <div v-if="processingGuess" class="notification" :class="{ 'is-success': correctGuess, 'is-danger': !correctGuess }"> 
-            It was <strong>{{ pokemonName }}</strong>!
-        </div>
+        <Transition name="notification">
+            <div v-if="processingGuess" class="notification"
+                :class="{ 'is-success': correctGuess, 'is-danger': !correctGuess }">
+                It was <strong>{{ pokemonName }}</strong>!
+            </div>
+        </Transition>
+
         <div class="pokemon">
             <div class="image-box">
-                <img :src="imageUrl" :class="{ visible: visible, goingAway: goingAway }" alt="who's that pokemon?">
+                <Transition name="pokemon" appear @after-leave="nextPokemon">
+                    <img v-if="!processingGuess" :src="imageUrl" alt="who's that pokemon?">
+                </Transition>
             </div>
+
+
             <input type="text" class="input " v-model="guess" @keyup.enter="processGuess" :disabled="disabled">
         </div>
         <div class="counts">
@@ -27,7 +35,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, nextTick, ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { fetchPokemonList, Pokemon } from '@/interfaces/pokemon';
 
 
@@ -41,10 +49,8 @@ export default defineComponent({
             guessCount: 0,
             pokemonName: "",
             guess: "",
-            count: 0,
+            pokemonIndex: 0,
             imageUrl: ref(""),
-            visible: false,
-            goingAway: false,
             disabled: false,
             processingGuess: false,
             correctGuess: false,
@@ -52,7 +58,7 @@ export default defineComponent({
     },
     computed: {
         currentPokemon(): { id: number; name: string; url: string; } {
-            return this.guessingList[this.count]
+            return this.guessingList[this.pokemonIndex]
         },
     },
     async created() {
@@ -76,53 +82,30 @@ export default defineComponent({
                 return
             }
             this.disabled = true;
-            this.visible = true;
-            if (this.guess.toLocaleLowerCase() === this.pokemonName.toLocaleLowerCase()) { // early termination //
+            if (this.guess.toLocaleLowerCase() != this.pokemonName.toLocaleLowerCase()) {
+                this.correctGuess = false
+                this.processingGuess = true
+                this.guess = ""
+                this.streak = 0
+                return
+            }
+            if (this.guess.toLocaleLowerCase() === this.pokemonName.toLocaleLowerCase()) {
                 this.correctGuess = true
                 this.processingGuess = true
-                setTimeout(this.guessText, 2000)
                 this.guess = ""
                 this.guessCount += 1
                 this.streak += 1
-                setTimeout(this.nextPokemon, 2500)
-                if (this.streak >= this.maxStreak) {
-                    this.maxStreak = this.streak
-                }
-            } else {
-                this.correctGuess = false
-                this.processingGuess = true
-                setTimeout(this.guessText, 2000)
-                setTimeout(this.nextPokemon, 2500)
-                this.guess = ""
-                this.streak = 0
+
+            }
+            if (this.streak >= this.maxStreak) {
+                this.maxStreak = this.streak
             }
         },
-        async nextPokemon() {
-            this.goingAway = true
-            await nextTick()
-            setTimeout(this.styleReset, 20)
-        },
-        async styleReset() {
-            this.visible = false
-            await nextTick()
-            setTimeout(this.countIncrease, 100)
-        },
-        async countIncrease() {
-            this.count += 1
-            await nextTick()
-            setTimeout(this.comingBack, 200)
-        },
-        async comingBack() {
-            this.goingAway = false
-            await nextTick()
-            this.disabled = false
-            await nextTick()
-        },
-        async guessText() {
-            this.correctGuess = false
+        nextPokemon() {
+            this.pokemonIndex += 1
             this.processingGuess = false
-            await nextTick()
-        },
+            this.disabled = false
+        }
     },
     watch: {
         async currentPokemon(pokemon) {
@@ -139,7 +122,7 @@ export default defineComponent({
 <style scoped>
 .notification {
     text-align: center;
-    width: 10%;
+    width: 20%;
     position: absolute;
     left: 0;
     right: 0;
@@ -165,6 +148,7 @@ export default defineComponent({
 .pokemon {
     display: flex;
     flex-direction: column;
+    height: 60%;
     width: 60%;
     margin: auto;
 }
@@ -172,51 +156,21 @@ export default defineComponent({
 .pokemon img {
     width: auto;
     height: 17rem;
-    filter: brightness(0);
     pointer-events: none;
+    filter: brightness(0);
 }
 
 .image-box {
     width: 40%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     pointer-events: none;
 }
 
-.pokemon img.visible {
-    animation: fade-in 0.5s ease-in-out forwards;
-}
-
-@keyframes fade-in {
-    from {
-        filter: brightness(0);
-    }
-
-    to {
-        filter: brightness(1);
-    }
-}
-
-.pokemon img.goingAway {
-    animation: fade-out 0.2s ease-in-out forwards;
-}
-
-@keyframes fade-out {
-    from {
-        height: 17rem;
-        width: auto;
-        filter: brightness(1);
-    }
-
-    to {
-        height: 0rem;
-        width: auto;
-        filter: brightness(1);
-    }
-}
-
 .input {
+    bottom: 0;
     width: 17em;
     margin-top: 2em;
     background-color: rgb(255, 255, 255);
@@ -228,6 +182,70 @@ export default defineComponent({
     text-align: center;
     width: 5em;
     margin: 0.7em;
+}
+
+.pokemon-enter-from {
+    transform: scale(0);
+}
+
+.pokemon-enter-to {
+    transform: scale(1);
+}
+
+.pokemon-enter-active {
+    transition: all 0.5s ease;
+}
+
+.pokemon-leave-from {
+    transform: scale(1);
+    filter: brightness(0);
+}
+
+.pokemon-leave-to {
+    transform: scale(0);
+    filter: brightness(1);
+}
+
+.pokemon-leave-active {
+    animation: leaves 2.5s ease;
+}
+
+@keyframes leaves {
+    0% {
+        transform: scale(1);
+        filter: brightness(0);
+    }
+
+    20% {
+        filter: brightness(1)
+    }
+
+    90% {
+        transform: scale(1)
+    }
+
+    100% {
+        transform: scale(0);
+        filter: brightness(1);
+    }
+}
+
+.notification-enter-from {
+    opacity: 0;
+    transform: translateY(-60px);
+}
+
+.notification-enter-active {
+    transition: all 0.3s ease;
+}
+
+.notification-leave-to {
+    opacity: 0;
+    transform: translateY(-60px);
+}
+
+.notification-leave-active {
+    transition: all 0.3s ease;
 }
 
 @media only screen and (max-width: 768px) {
@@ -277,9 +295,8 @@ export default defineComponent({
 
     .notification {
         width: 70%;
-        position: absolute;
+        margin: 0 auto;
         top: 20%;
-        left: 15%;
     }
 }
 
@@ -317,39 +334,6 @@ export default defineComponent({
         filter: brightness(0);
     }
 
-    .pokemon img.visible {
-        animation: fade-in 0.5s ease-in-out forwards;
-    }
-
-    @keyframes fade-in {
-        from {
-            filter: brightness(0);
-        }
-
-        to {
-            filter: brightness(1);
-        }
-    }
-
-    .pokemon img.goingAway {
-        animation: fade-out 0.2s ease-in-out forwards;
-    }
-
-    @keyframes fade-out {
-        from {
-            width: auto;
-            height: 10rem;
-            filter: brightness(1);
-        }
-
-        to {
-            height: 0rem;
-            width: auto;
-            filter: brightness(1);
-        }
-    }
-
-
     .notification {
         width: 25%;
         position: absolute;
@@ -379,5 +363,10 @@ export default defineComponent({
         background-size: contain;
         background-position-y: center;
     }
-}
-</style>
+
+    .notification {
+        width: 25%;
+        position: absolute;
+        top: 20%;
+    }
+}</style>
