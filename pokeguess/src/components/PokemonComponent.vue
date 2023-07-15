@@ -112,6 +112,7 @@ export default defineComponent({
             const id = pokemon.id.toString().padStart(3, "0");
             this.imageUrl = `https://assets.pokemon.com/assets/cms2/img/pokedex/full/${id}.png`
             this.pokemonName = pokemon.name
+            console.log(pokemon.name)
         }
     }
 
