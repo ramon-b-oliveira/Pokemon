@@ -10,20 +10,6 @@ A browser-based Pokémon guessing game built with Vue 3 and TypeScript. The app 
 - **Font Awesome** for icons
 - **CSS** custom styling and animations
 
-## How to Run
-
-```bash
-# Clone the repo
-git clone https://github.com/ramon-b-oliveira/Pokemon.git
-cd Pokemon/pokeguess
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-```
-
 ## Features
 
 - Pokémon silhouette guessing gameplay
